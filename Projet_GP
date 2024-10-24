@@ -6,7 +6,6 @@
 
 float temps_S1() {
   int i;
-  int g;
   int j;
   int temps_base_S1 = 25;
   float temps_pilotes[20];
