@@ -9,7 +9,8 @@
 
 float temps_secteur(float baseTime) {
   int i;
-  srand(time(NULL)); // Utilise comme seed de création de nombre aléatoire le temps en seconde depuis janvier 1970
+  int pid = getpid();
+  srand(pid); // Utilise comme seed de création de nombre aléatoire le pid du processus en cours d'exécution
   float nombre_aleatoire = rand() % 3000 + 1;  // Génère un nombre pseudo-aléatoire
   float temps_S = nombre_aleatoire/1000 + baseTime;
   return temps_S;
