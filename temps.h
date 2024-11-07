@@ -28,8 +28,13 @@ void afficher_temps(float temps, int num_pilote) {
   printf("Pilote n°%d ---> %.3f sec\n", num_pilote, temps);
 }
 
-void stocker_temps(float temps, int num_pilote, int i, int secteur) {
-    switch (secteur) {
+void stocker_temps(float temps, int num_pilote, int i, int secteur, int fichier) {
+    char buffer[100];
+    snprintf(buffer, sizeof(buffer), "Pilote %d Secteur %d : %.3f sec\n", num_pilote, secteur, temps);
+    write(fichier, buffer, strlen(buffer));
+}
+
+    /*switch (secteur) {
         case 1:
             temps_s1[i] = temps;
             break;
@@ -40,8 +45,9 @@ void stocker_temps(float temps, int num_pilote, int i, int secteur) {
             temps_s3[i] = temps;
             break;
     }
-    temps_totaux[i] = temps_s1[i] + temps_s2[i] + temps_s3[i];
-}
+    temps_totaux[i] = temps_s1[i] + temps_s2[i] + temps_s3[i];*/
+
+
 
 
   /*int fich = open("temps_stockage.txt", O_CREAT|O_APPEND|O_RDWR, 0666);
