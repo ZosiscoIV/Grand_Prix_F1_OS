@@ -19,18 +19,35 @@ void voiture(int i){
     close(fichier);
   }
 
+  int num = num_pilotes[i];
 
-  float s1 = temps_secteur(SECTEUR1);
+  float s1 = temps_secteur(SECTEUR1, 2);
   afficher_temps(s1, num_pilotes[i]);
   stocker_temps(s1, num_pilotes[i], i, 1, fichier);
 
-  float s2 = temps_secteur(SECTEUR2);
+  float s2 = temps_secteur(SECTEUR2, 4);
   afficher_temps(s2, num_pilotes[i]);
   stocker_temps(s2, num_pilotes[i], i, 2, fichier);
 
-  float s3 = temps_secteur(SECTEUR3);
+  float s3 = temps_secteur(SECTEUR3, 1);
   afficher_temps(s3, num_pilotes[i]);
   stocker_temps(s3, num_pilotes[i], i, 3, fichier);
+
+  srand(i);
+  float test = rand() % 21;
+  bool pit;
+
+  if (test > 19) {
+    pit = true;
+  }
+  else {
+    pit = false;
+  }
+
+  float total = s1 + s2 + s3;
+  struct voit temp_voit = {num, s1, s2, s3, total, pit};
+
+  tab_voit[i] = temp_voit;
 
   close(fichier); //fermeture après utilisation
 }
@@ -62,7 +79,7 @@ int main() {
       wait(NULL);  // Attend chaque processus enfant pour éviter les zombies
   }
   for (i = 0; i < size_pilotes; i++) {
-    afficher_temps(temps_totaux[i], num_pilotes[i]);
+    afficher_temps(tab_voit[i].temps_total, tab_voit[i].num_p);
   }
 
   return 0;
