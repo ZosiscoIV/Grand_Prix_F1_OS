@@ -15,21 +15,22 @@
 //float temps_s3[20] = {0};
 //float temps_totaux[20] = {0};
 
-struct voit {
+typedef struct {
   int num_p;
   float temps_s1;
   float temps_s2;
   float temps_s3;
   float temps_total;
   bool in_pit;
-};
+  bool out;
+} voit;
 
-struct voit tab_voit[20];
+
 
 float temps_secteur(float baseTime, int modifier) {
   int i;
   int pid = getpid();
-  srand(pid + modifier); // Utilise comme seed de création de nombre aléatoire le pid du processus en cours d'exécution
+  srand(pid + modifier + time(NULL)); // Utilise comme seed de création de nombre aléatoire le pid du processus en cours d'exécution
   float nombre_aleatoire = rand() % 7000 + 1;  // Génère un nombre pseudo-aléatoire
   float temps_S = nombre_aleatoire/1000 + baseTime;
   return temps_S;
