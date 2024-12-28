@@ -29,7 +29,7 @@ void BubbleSort(voit a[], int array_size){
 
 
 
-void voiture(int i){
+void course(int i){
 
   // Ouverture d'un fichier pour stocker les temps
   int fichier = open("temps_stockage.txt", O_CREAT|O_APPEND|O_RDWR, 0666);
@@ -69,9 +69,34 @@ void voiture(int i){
 
   tab_voit[i] = temporary_voit;
 
+  //afficher_temps(total, num_pilotes[i]);
+
 
   close(fichier); // Fermeture après utilisation
+  sleep(1);
 }
+
+
+void lecture_tri_affichage(voit *tableau_voit, int size_pilotes) {
+  int i;
+  voit lecture_voit[20]; // Crée un tableau pour stocker tout les temps
+
+  memcpy(lecture_voit, tableau_voit, 20*sizeof(voit)); // Fait une copie de la mémoire partagée
+
+  BubbleSort(lecture_voit, 20); // Trie le tableau des temps
+
+  printf("-------------------------------------------------\n");
+  for (i = 0; i < size_pilotes; i++) {
+    if (i == 0) {
+      afficher_temps(lecture_voit[i].temps_total, lecture_voit[i].num_p, lecture_voit[i].temps_total);
+    }
+    else {
+      afficher_temps(lecture_voit[i].temps_total, lecture_voit[i].num_p, lecture_voit[i-1].temps_total);
+    }
+  }
+  printf("-------------------------------------------------\n"); // Affiche les temps
+}
+
 
 
 
@@ -79,7 +104,7 @@ void voiture(int i){
 
 int main() {
   int child_pid;
-  int i;
+  int h, i, j, k, l;
   int size_pilotes = sizeof(num_pilotes)/sizeof(num_pilotes[0]);
 
 
@@ -105,44 +130,45 @@ int main() {
   }
 
 
-  // Création des processus fils
-  for(i = 0; i < size_pilotes; i++) {
-    child_pid = fork();
+  // Simulation de plusieurs tours
+  for (h = 0; h < 10; h++) {
+    // Création des processus fils
+    for(i = 0; i < size_pilotes; i++) {
+      child_pid = fork();
   
-    if(child_pid == -1) {
-      perror("Erreur lors du fork");
-      exit(EXIT_FAILURE);
+      if(child_pid == -1) {
+        perror("Erreur lors du fork");
+        exit(EXIT_FAILURE);
+      }
+  
+      if(child_pid == 0){
+        course(i);
+        exit(EXIT_SUCCESS);  // Le processus enfant se termine après avoir simulé la voiture
+      }
     }
-  
-    if(child_pid == 0){
-      voiture(i);
-      exit(EXIT_SUCCESS);  // Le processus enfant se termine après avoir simulé la voiture
+    
+    // Processus parent attend que tous les enfants se terminent
+    for (l = 0; l < size_pilotes; l++) {
+        wait(NULL);  // Attend chaque processus enfant pour éviter les zombies
     }
-  }
-  
-
-
-  // Processus parent attend que tous les enfants se terminent
-  for (i = 0; i < size_pilotes; i++) {
-      wait(NULL);  // Attend chaque processus enfant pour éviter les zombies
+    // Lecture et affichage des temps en mémoire partagée
+    lecture_tri_affichage(tab_voit, size_pilotes);
+    sleep(1);
   }
 
 
-  voit lecture_voit[20];
-
-  memcpy(lecture_voit, tab_voit, 20*sizeof(voit));
-
-  BubbleSort(lecture_voit, 20);
-
-
-  for (i = 0; i < size_pilotes; i++) {
-    afficher_temps(lecture_voit[i].temps_total, lecture_voit[i].num_p);
-  }
 
 
   // Détacher la mémoire partagée
-  shmdt(tab_voit);
-  shmctl(shared_memory, IPC_RMID, NULL);
+  if (shmdt(tab_voit) == -1) {
+    perror("Erreur lors du détachement de la mémoire partagée");
+    exit(EXIT_FAILURE);
+  }
+  if (shmctl(shared_memory, IPC_RMID, NULL) == -1) {
+    perror("Erreur lors de la suppression de la mémoire partagée");
+    exit(EXIT_FAILURE);
+  }
+
 
   return 0;
 }
