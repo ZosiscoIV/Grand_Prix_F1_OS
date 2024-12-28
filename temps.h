@@ -20,10 +20,19 @@ typedef struct {
   float temps_s1;
   float temps_s2;
   float temps_s3;
+  float temps_tour;
   float temps_total;
   bool in_pit;
   bool out;
 } voit;
+
+
+typedef struct {
+    voit best_s1;
+    voit best_s2;
+    voit best_s3;
+    voit best_tour;
+} bestTimes;
 
 
 
@@ -37,10 +46,16 @@ float temps_secteur(float baseTime, int modifier) {
 }
 
 
-void afficher_temps(float temps, int num_pilote, float temps_precedent) {
-  float diff;
+void afficher_temps(float temps, int num_pilote, float temps_precedent, float total) {
+  float diff, t_sec, tot_sec;
+  int t_min, tot_min;
   diff = temps - temps_precedent;
-  printf("| Pilote n°%d	| %.3f sec | + %.3f |\n", num_pilote, temps, diff);
+  t_min = (int)(temps / 60);
+  t_sec = temps - (t_min * 60);
+
+  tot_min = (int)(total / 60);
+  tot_sec = total - (tot_min * 60);
+  printf("| Pilote n°%-2d | %2d min %6.3f sec | %+7.3f | %2d min %6.3f sec |          |\n", num_pilote, t_min, t_sec, diff, tot_min, tot_sec);
 }
 
 void stocker_temps(float temps, int num_pilote, int i, int secteur, int fichier) {
