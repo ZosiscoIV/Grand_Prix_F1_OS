@@ -37,8 +37,10 @@ float temps_secteur(float baseTime, int modifier) {
 }
 
 
-void afficher_temps(float temps, int num_pilote) {
-  printf("Pilote n°%d ---> %.3f sec\n", num_pilote, temps);
+void afficher_temps(float temps, int num_pilote, float temps_precedent) {
+  float diff;
+  diff = temps - temps_precedent;
+  printf("| Pilote n°%d	| %.3f sec | + %.3f |\n", num_pilote, temps, diff);
 }
 
 void stocker_temps(float temps, int num_pilote, int i, int secteur, int fichier) {
