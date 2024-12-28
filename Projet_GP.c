@@ -293,6 +293,14 @@ int main(int argc, char **argv) {
           q2(tours);
       } else if (strcmp(argv[1], "q3") == 0) {
           q3(tours);
+      } else if (strcmp(argv[1], "p1") == 0) {
+          q1(tours);
+      } else if (strcmp(argv[1], "p2") == 0) {
+          q1(tours);
+      } else if (strcmp(argv[1], "p3") == 0) {
+          q1(tours);
+      } else if (strcmp(argv[1], "sprint") == 0) {
+          grand_prix(tours);
       } else {
           printf("Veuillez fournir un argument valide (ex: grand_prix, q1, ...).\n");
       }
