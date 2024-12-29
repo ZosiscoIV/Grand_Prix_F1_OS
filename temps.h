@@ -46,16 +46,29 @@ float temps_secteur(float baseTime, int modifier) {
 }
 
 
-void afficher_temps(float temps, int num_pilote, float temps_precedent, float total) {
+void afficher_temps(voit voiture, voit voiture_avant) {
   float diff, t_sec, tot_sec;
   int t_min, tot_min;
-  diff = temps - temps_precedent;
-  t_min = (int)(temps / 60);
-  t_sec = temps - (t_min * 60);
+  char pit_out[4];
+  diff = voiture.temps_total - voiture_avant.temps_total;
+  t_min = (int)(voiture.temps_total / 60);
+  t_sec = voiture.temps_total - (t_min * 60);
 
-  tot_min = (int)(total / 60);
-  tot_sec = total - (tot_min * 60);
-  printf("| Pilote n°%-2d | %2d min %6.3f sec | %+7.3f | %2d min %6.3f sec |          |\n", num_pilote, t_min, t_sec, diff, tot_min, tot_sec);
+  tot_min = (int)(voiture.temps_tour / 60);
+  tot_sec = voiture.temps_tour - (tot_min * 60);
+
+  if (voiture.out) {
+    sprintf(pit_out, "out");
+  } else if (voiture.in_pit) {
+    sprintf(pit_out, "pit");
+  } else {
+    sprintf(pit_out, "   ");
+  }
+
+  
+
+
+  printf("| Pilote n°%-2d | %2d min %6.3f sec | %+7.3f | %2d min %6.3f sec | %s      |\n", voiture.num_p, t_min, t_sec, diff, tot_min, tot_sec, pit_out);
 }
 
 void stocker_temps(float temps, int num_pilote, int i, int secteur, int fichier) {
