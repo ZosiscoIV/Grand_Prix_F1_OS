@@ -143,6 +143,20 @@ void BubbleSort(voit a[], int array_size){
   }
 }
 
+// Affichage grille de départ
+void affichage_grille(int participants) {
+  int i;
+  for (i = participants; i > 0; i--) {
+    if ((i % 2) == 0) {
+      printf("n°%2d |__%2d__|\n", i, num_pilotes[i-1]);
+    } else {
+      printf("                 n°%2d |__%2d__|\n", i, num_pilotes[i-1]);
+    }
+  }
+}  
+
+
+
 void course(int i, bool isQualif, int participants, int tour_fait){
   // Demande d'accès pour un rédacteur
   P(semid_redacteur);  // Rédacteur prend le semaphore
@@ -262,7 +276,7 @@ bestTimes lecture_tri_affichage(voit *tableau_voit, int size_pilotes, bestTimes 
   return best_times;
 }
 
-int grand_prix(int nbr_tours, bool qualif, int participants_course) {
+int grand_prix(int nbr_tours, bool qualif, int participants_course, bool show_grid) {
   int child_pid;
   int h, i, j, k, l;
   int size_pilotes = participants_course; //sizeof(num_pilotes)/sizeof(num_pilotes[0]);
@@ -273,7 +287,11 @@ int grand_prix(int nbr_tours, bool qualif, int participants_course) {
   num_pilotes_q3 = (int*) malloc(NOMBRE_PILOTES_Q2 * sizeof(int)); // Allocation mémoire pour num_pilotes_q3
 
   // Lecture des numéros de pilotes depuis les fichiers
-  lire_pilotes("q1.txt", num_pilotes, NOMBRE_PILOTES_BASE);
+  if (qualif) {
+    lire_pilotes("q1.txt", num_pilotes, NOMBRE_PILOTES_BASE);
+  } else {
+    lire_pilotes("ordre_course.txt", num_pilotes, NOMBRE_PILOTES_BASE);
+  }
   lire_pilotes("q2.txt", num_pilotes_q2, NOMBRE_PILOTES_Q2);
   lire_pilotes("q3.txt", num_pilotes_q3, NOMBRE_PILOTES_Q3);
 
@@ -296,6 +314,12 @@ int grand_prix(int nbr_tours, bool qualif, int participants_course) {
 
   bestTimes best_times = {0};  // Initialisation des meilleurs temps
   best_times.best_s1.temps_s1 = best_times.best_s2.temps_s2 = best_times.best_s3.temps_s3 = best_times.best_tour.temps_tour = 1000;
+  
+  // Affichage grille de départ
+  if (show_grid) {
+    affichage_grille(participants_course);
+  }
+
   // Simulation de plusieurs tours
   for (h = 0; h < nbr_tours; h++) {
     // Création des processus fils
@@ -377,21 +401,21 @@ int main(int argc, char **argv) {
   int tours = atoi(argv[2]);
   if (argc > 1) {
       if (strcmp(argv[1], "gp") == 0) {
-          grand_prix(tours, false, NOMBRE_PILOTES_BASE);
+          grand_prix(tours, false, NOMBRE_PILOTES_BASE, true);
       } else if (strcmp(argv[1], "q1") == 0) {
-          grand_prix(tours, true, NOMBRE_PILOTES_BASE);
+          grand_prix(tours, true, NOMBRE_PILOTES_BASE, false);
       } else if (strcmp(argv[1], "q2") == 0) {
-          grand_prix(tours, true, NOMBRE_PILOTES_Q2);
+          grand_prix(tours, true, NOMBRE_PILOTES_Q2, false);
       } else if (strcmp(argv[1], "q3") == 0) {
-          grand_prix(tours, true, NOMBRE_PILOTES_Q3);
+          grand_prix(tours, true, NOMBRE_PILOTES_Q3, false);
       } else if (strcmp(argv[1], "p1") == 0) {
-          grand_prix(tours, true, NOMBRE_PILOTES_BASE);
+          grand_prix(tours, true, NOMBRE_PILOTES_BASE, false);
       } else if (strcmp(argv[1], "p2") == 0) {
-          grand_prix(tours, true, NOMBRE_PILOTES_BASE);
+          grand_prix(tours, true, NOMBRE_PILOTES_BASE, false);
       } else if (strcmp(argv[1], "p3") == 0) {
-          grand_prix(tours, true, NOMBRE_PILOTES_BASE);
+          grand_prix(tours, true, NOMBRE_PILOTES_BASE, false);
       } else if (strcmp(argv[1], "sprint") == 0) {
-          grand_prix(tours, false, NOMBRE_PILOTES_BASE);
+          grand_prix(tours, false, NOMBRE_PILOTES_BASE, false);
       } else {
           printf("Veuillez fournir un argument valide (ex: grand_prix, q1, ...).\n");
       }
