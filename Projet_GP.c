@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <sys/sem.h>
 #include <string.h>
 #include "temps.h"
 
@@ -12,9 +13,121 @@
 #define NOMBRE_PILOTES_Q2 15
 #define NOMBRE_PILOTES_Q3 10
 
-int num_pilotes[NOMBRE_PILOTES_BASE] = {1, 11, 44, 63, 16, 55, 4, 81, 14, 18, 10, 31, 23, 2, 22, 3, 77, 24, 20, 27};
+// Remplacement des tableaux statiques par l'ouverture et la lecture depuis des fichiers
+// (les fichiers sont à ajouter à l'avenir, il faut les lire ici)
+int* num_pilotes;  // Déclaration des tableaux comme pointeurs
+int* num_pilotes_q2;
+int* num_pilotes_q3;
 
 
+// Identifiants des sémaphores
+int semid_lecteur, semid_redacteur;
+
+// Initialisation des sémaphores
+void init_semaphores() {
+    // Création de deux sémaphores
+    semid_lecteur = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
+    if (semid_lecteur == -1) {
+        perror("Erreur lors de la création du sémaphore lecteur");
+        exit(EXIT_FAILURE);
+    }
+
+    semid_redacteur = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
+    if (semid_redacteur == -1) {
+        perror("Erreur lors de la création du sémaphore rédacteur");
+        exit(EXIT_FAILURE);
+    }
+
+    // Initialisation du sémaphore lecteur à 1 (seul un lecteur peut lire)
+    if (semctl(semid_lecteur, 0, SETVAL, 1) == -1) {
+        perror("Erreur d'initialisation du sémaphore lecteur");
+        exit(EXIT_FAILURE);
+    }
+
+    // Initialisation du sémaphore rédacteur à 1 (seul un rédacteur peut écrire)
+    if (semctl(semid_redacteur, 0, SETVAL, 1) == -1) {
+        perror("Erreur d'initialisation du sémaphore rédacteur");
+        exit(EXIT_FAILURE);
+    }
+}
+
+
+
+// Fonction pour effectuer une opération de P (attente sur le sémaphore)
+void P(int semid) {
+    struct sembuf sb;
+    sb.sem_num = 0;
+    sb.sem_op = -1;  // Opération P : décrémentation
+    sb.sem_flg = 0;
+    if (semop(semid, &sb, 1) == -1) {
+        perror("Erreur lors de l'opération P sur le sémaphore");
+        exit(EXIT_FAILURE);
+    }
+}
+
+
+// Fonction pour effectuer une opération de V (signal sur le sémaphore)
+void V(int semid) {
+    struct sembuf sb;
+    sb.sem_num = 0;
+    sb.sem_op = 1;  // Opération V : incrémentation
+    sb.sem_flg = 0;
+    if (semop(semid, &sb, 1) == -1) {
+        perror("Erreur lors de l'opération V sur le sémaphore");
+        exit(EXIT_FAILURE);
+    }
+}
+
+
+
+// Fonction pour sauvegarder les pilotes dans le fichier
+void sauvegarder_pilotes(voit *pilotes, int nombre_pilotes, const char *fichier) {
+    FILE *f = fopen(fichier, "w");
+    if (!f) {
+        perror("Erreur d'ouverture du fichier pour sauvegarde");
+        exit(EXIT_FAILURE);
+    }
+    
+    // Sauvegarde des 15 premiers pilotes ou 10 premiers
+    int i;
+    for (i = 0; i < nombre_pilotes; i++) {
+        fprintf(f, "%d\n", pilotes[i].num_p); // Sauvegarde des numéros des pilotes dans l'ordre
+    }
+
+    fclose(f); // Fermeture du fichier après écriture
+}
+
+void sauvegarder_5_derniers_pilotes(int *tableau, int taille, const char *fichier) {
+    FILE *f = fopen(fichier, "a");  // Ouvre en mode "append" pour ajouter à la fin
+    if (!f) {
+        perror("Erreur d'ouverture du fichier pour ajouter les derniers pilotes");
+        exit(EXIT_FAILURE);
+    }
+
+    // Sauvegarde des 5 derniers pilotes
+    int i;
+    for (i = taille - 5; i < taille; i++) {
+        fprintf(f, "%d\n", tableau[i]); // Sauvegarde des numéros des pilotes
+    }
+
+    fclose(f);  // Fermeture du fichier après écriture
+}
+
+
+// Fonction pour lire les numéros des pilotes depuis un fichier
+void lire_pilotes(const char *fichier, int *tableau, int taille) {
+    FILE *f = fopen(fichier, "r");
+    if (!f) {
+        perror("Erreur d'ouverture du fichier");
+        exit(EXIT_FAILURE);
+    }
+    int i;
+    for (i = 0; i < taille; i++) {
+        fscanf(f, "%d", &tableau[i]); // Remplissage du tableau avec les numéros de pilotes
+    }
+
+    fclose(f); // Fermeture du fichier après lecture
+}
 
 void BubbleSort(voit a[], int array_size){
   int i, j;
@@ -30,9 +143,10 @@ void BubbleSort(voit a[], int array_size){
   }
 }
 
+void course(int i, bool isQualif, int participants, int tour_fait){
+  // Demande d'accès pour un rédacteur
+  P(semid_redacteur);  // Rédacteur prend le semaphore
 
-
-void course(int i, bool isQualif, int participants){
 
   // Ouverture d'un fichier pour stocker les temps
   int fichier = open("temps_stockage.txt", O_CREAT|O_APPEND|O_RDWR, 0666);
@@ -44,24 +158,27 @@ void course(int i, bool isQualif, int participants){
     close(fichier);
   }
 
-  int num = num_pilotes[i];
+  int num;
 
+  // Lecture dynamique des numéros de pilotes en fonction du nombre de participants
+  if (participants == 20) {
+    num = num_pilotes[i];
+  } else if (participants == 15) {
+    num = num_pilotes_q2[i];
+  } else if (participants == 10) {
+    num = num_pilotes_q3[i];
+  } else {
+    num = 0;
+  }
+ 
   float s1 = temps_secteur(SECTEUR1, 2);
-  //afficher_temps(s1, num_pilotes[i]);
-  //stocker_temps(s1, num_pilotes[i], i, 1, fichier);
-
   float s2 = temps_secteur(SECTEUR2, 4);
-  //afficher_temps(s2, num_pilotes[i]);
-  //stocker_temps(s2, num_pilotes[i], i, 2, fichier);
-
   float s3 = temps_secteur(SECTEUR3, 1);
-  //afficher_temps(s3, num_pilotes[i]);
-  //stocker_temps(s3, num_pilotes[i], i, 3, fichier);
 
   int pid = getpid();
   srand(i + pid + time(NULL));
   bool pit = (rand() % 6 == 0);
-  bool v_out = (rand() % 40 == 0);
+  bool v_out = (rand() % 100 == 0);
 
   if (pit) {
     s3 = s3 + 25;
@@ -88,19 +205,27 @@ void course(int i, bool isQualif, int participants){
   if (!v_out || tab_voit[i].num_p == 0) {
     voit temporary_voit = {num, s1, s2, s3, tour, stock_total, pit, v_out};
     tab_voit[i] = temporary_voit;
+  } else if (v_out && isQualif) {
+    tab_voit[i].out = v_out;
+  } else if (v_out && !tab_voit[i].out) {
+    tab_voit[i].out = v_out;
+    tab_voit[i].temps_total = 59959 - tour_fait ;
   } else {
     tab_voit[i].out = v_out;
   }
 
-  //afficher_temps(total, num_pilotes[i]);
-
-
   close(fichier); // Fermeture après utilisation
+
+  // Libération du semaphore pour le rédacteur
+  V(semid_redacteur);  // Rédacteur libère le semaphore
   sleep(1);
 }
 
+bestTimes lecture_tri_affichage(voit *tableau_voit, int size_pilotes, bestTimes best_times, int participants, bool isQualif) {
 
-bestTimes lecture_tri_affichage(voit *tableau_voit, int size_pilotes, bestTimes best_times, int participants) {
+  // Attente pour les lecteurs
+  P(semid_lecteur);  // Lecteur prend le semaphore
+
   int i;
   voit lecture_voit[participants]; // Crée un tableau pour stocker tout les temps
 
@@ -108,7 +233,7 @@ bestTimes lecture_tri_affichage(voit *tableau_voit, int size_pilotes, bestTimes 
 
   BubbleSort(lecture_voit, participants); // Trie le tableau des temps
 
-  printf("---------------------------------------------------------------------------\n");
+  printf("-----------------------------------------------------------------------------\n");
   for (i = 0; i < size_pilotes; i++) {
     if (lecture_voit[i].temps_s1 < best_times.best_s1.temps_s1) {
       best_times.best_s1 = lecture_voit[i];
@@ -123,24 +248,34 @@ bestTimes lecture_tri_affichage(voit *tableau_voit, int size_pilotes, bestTimes 
       best_times.best_tour = lecture_voit[i];
     }
     if (i == 0) {
-      afficher_temps(lecture_voit[i], lecture_voit[i]);
+      afficher_temps(lecture_voit[i], lecture_voit[i], isQualif);
     }
     else {
-      afficher_temps(lecture_voit[i], lecture_voit[i-1]);
+      afficher_temps(lecture_voit[i], lecture_voit[i-1], isQualif);
     }
   }
-  printf("| s1 n°%2d : %6.3f, s2 n°%2d : %6.3f, s3 n°%2d : %6.3f, tour n°%2d : %6.3f |\n", best_times.best_s1.num_p, best_times.best_s1.temps_s1, best_times.best_s2.num_p, best_times.best_s2.temps_s2, best_times.best_s3.num_p, best_times.best_s3.temps_s3, best_times.best_tour.num_p, best_times.best_tour.temps_tour);
-  printf("---------------------------------------------------------------------------\n"); // Affiche les temps
+  printf("| s1 n°%2d : %6.3f, s2 n°%2d : %6.3f, s3 n°%2d : %6.3f, tour n°%2d : %6.3f  |\n", best_times.best_s1.num_p, best_times.best_s1.temps_s1, best_times.best_s2.num_p, best_times.best_s2.temps_s2, best_times.best_s3.num_p, best_times.best_s3.temps_s3, best_times.best_tour.num_p, best_times.best_tour.temps_tour);
+  printf("-----------------------------------------------------------------------------\n"); // Affiche les temps
+
+  // Libération du semaphore pour les lecteurs
+  V(semid_lecteur);  // Lecteur libère le semaphore
   return best_times;
 }
-
-
 
 int grand_prix(int nbr_tours, bool qualif, int participants_course) {
   int child_pid;
   int h, i, j, k, l;
   int size_pilotes = participants_course; //sizeof(num_pilotes)/sizeof(num_pilotes[0]);
 
+  // Allocation dynamique des numéros de pilotes
+  num_pilotes = (int*) malloc(NOMBRE_PILOTES_BASE * sizeof(int)); // Allocation mémoire pour num_pilotes
+  num_pilotes_q2 = (int*) malloc(NOMBRE_PILOTES_BASE * sizeof(int)); // Allocation mémoire pour num_pilotes_q2
+  num_pilotes_q3 = (int*) malloc(NOMBRE_PILOTES_Q2 * sizeof(int)); // Allocation mémoire pour num_pilotes_q3
+
+  // Lecture des numéros de pilotes depuis les fichiers
+  lire_pilotes("q1.txt", num_pilotes, NOMBRE_PILOTES_BASE);
+  lire_pilotes("q2.txt", num_pilotes_q2, NOMBRE_PILOTES_Q2);
+  lire_pilotes("q3.txt", num_pilotes_q3, NOMBRE_PILOTES_Q3);
 
   // Création de la mémoire partagée
   int shared_memory = shmget(6969, 20*sizeof(voit), IPC_CREAT | 0666);
@@ -153,9 +288,6 @@ int grand_prix(int nbr_tours, bool qualif, int participants_course) {
         perror("Erreur lors de l'attachement de la mémoire partagée");
         exit(EXIT_FAILURE);
   }
-
-
-
 
   // Initialisation de la mémoire partagée
   for (i = 0; i < participants_course; i++) {
@@ -176,7 +308,7 @@ int grand_prix(int nbr_tours, bool qualif, int participants_course) {
       }
   
       if(child_pid == 0){
-        course(i, qualif, participants_course);
+        course(i, qualif, participants_course, h);
         exit(EXIT_SUCCESS);  // Le processus enfant se termine après avoir simulé la voiture
       }
     }
@@ -186,11 +318,29 @@ int grand_prix(int nbr_tours, bool qualif, int participants_course) {
         wait(NULL);  // Attend chaque processus enfant pour éviter les zombies
     }
     // Lecture et affichage des temps en mémoire partagée
-    best_times = lecture_tri_affichage(tab_voit, size_pilotes, best_times, participants_course);
+    best_times = lecture_tri_affichage(tab_voit, size_pilotes, best_times, participants_course, qualif);
     sleep(1);
   }
+  voit lecture_voit[participants_course]; // Crée un tableau pour stocker tout les temps
 
+  memcpy(lecture_voit, tab_voit, participants_course*sizeof(voit)); // Fait une copie de la mémoire partagée
 
+  BubbleSort(lecture_voit, participants_course); // Trie le tableau des temps
+
+  if (participants_course == 20 && qualif) {
+    sauvegarder_pilotes(lecture_voit, 20, "q2.txt");  // Sauvegarde les 15 premiers après q2
+  } else if (participants_course == 15) {
+    sauvegarder_pilotes(lecture_voit, 15, "q3.txt");  // Sauvegarde les 10 premiers après q3
+  } else if (participants_course == 10) {
+    sauvegarder_pilotes(lecture_voit, 10, "ordre_course.txt");  // Sauvegarde l'ordre des 10 premiers
+
+    lire_pilotes("q2.txt", num_pilotes_q2, NOMBRE_PILOTES_BASE);
+    lire_pilotes("q3.txt", num_pilotes_q3, NOMBRE_PILOTES_Q2);
+    // Sauvegarder les 5 derniers du q2
+    sauvegarder_5_derniers_pilotes(num_pilotes_q3, NOMBRE_PILOTES_Q2, "ordre_course.txt");
+    // Sauvegarder les 5 derniers du q1
+    sauvegarder_5_derniers_pilotes(num_pilotes_q2, NOMBRE_PILOTES_BASE, "ordre_course.txt");
+  }
 
 
   // Détacher la mémoire partagée
@@ -203,13 +353,27 @@ int grand_prix(int nbr_tours, bool qualif, int participants_course) {
     exit(EXIT_FAILURE);
   }
 
+  if (semctl(semid_lecteur, 0, IPC_RMID) == -1) {
+    perror("Erreur lors de la suppression du sémaphore lecteur");
+    exit(EXIT_FAILURE);
+  }
+  if (semctl(semid_redacteur, 0, IPC_RMID) == -1) {
+    perror("Erreur lors de la suppression du sémaphore rédacteur");
+    exit(EXIT_FAILURE);
+  }
+
+
+
+  // Libération de la mémoire allouée dynamiquement
+  free(num_pilotes);  // Libère la mémoire allouée pour num_pilotes
+  free(num_pilotes_q2);  // Libère la mémoire allouée pour num_pilotes_q2
+  free(num_pilotes_q3);  // Libère la mémoire allouée pour num_pilotes_q3
 
   return 0;
 }
 
-
-
 int main(int argc, char **argv) {
+  init_semaphores();
   int tours = atoi(argv[2]);
   if (argc > 1) {
       if (strcmp(argv[1], "gp") == 0) {
