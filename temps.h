@@ -46,7 +46,7 @@ float temps_secteur(float baseTime, int modifier) {
 }
 
 
-void afficher_temps(voit voiture, voit voiture_avant) {
+void afficher_temps(voit voiture, voit voiture_avant, bool isQualif) {
   float diff, t_sec, tot_sec;
   int t_min, tot_min;
   char pit_out[4];
@@ -65,10 +65,14 @@ void afficher_temps(voit voiture, voit voiture_avant) {
     sprintf(pit_out, "   ");
   }
 
+  if (voiture.out && !isQualif) {
+    printf("| Pilote n°%-2d |   out              | out     | out               | %s      |\n", voiture.num_p, pit_out);
+  } else {
+    printf("| Pilote n°%-2d | %3d min %6.3f sec | %+7.3f | %2d min %6.3f sec | %s      |\n", voiture.num_p, t_min, t_sec, diff, tot_min, tot_sec, pit_out);    
+  }
+
   
 
-
-  printf("| Pilote n°%-2d | %2d min %6.3f sec | %+7.3f | %2d min %6.3f sec | %s      |\n", voiture.num_p, t_min, t_sec, diff, tot_min, tot_sec, pit_out);
 }
 
 void stocker_temps(float temps, int num_pilote, int i, int secteur, int fichier) {
