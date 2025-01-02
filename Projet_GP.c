@@ -19,33 +19,34 @@ int* num_pilotes;  // Déclaration des tableaux comme pointeurs
 int* num_pilotes_q2;
 int* num_pilotes_q3;
 
-
+// Compteur de rédacteurs
+int writer_count = 0;
 // Identifiants des sémaphores
-int semid_lecteur, semid_redacteur;
+int mutex, read_lock;
 
 // Initialisation des sémaphores
 void init_semaphores() {
     // Création de deux sémaphores
-    semid_lecteur = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
-    if (semid_lecteur == -1) {
-        perror("Erreur lors de la création du sémaphore lecteur");
+    mutex = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
+    if (mutex == -1) {
+        perror("Erreur lors de la création du sémaphore du compteur");
         exit(EXIT_FAILURE);
     }
 
-    semid_redacteur = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
-    if (semid_redacteur == -1) {
+    read_lock = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
+    if (read_lock == -1) {
         perror("Erreur lors de la création du sémaphore rédacteur");
         exit(EXIT_FAILURE);
     }
 
     // Initialisation du sémaphore lecteur à 1 (seul un lecteur peut lire)
-    if (semctl(semid_lecteur, 0, SETVAL, 1) == -1) {
-        perror("Erreur d'initialisation du sémaphore lecteur");
+    if (semctl(mutex, 0, SETVAL, 1) == -1) {
+        perror("Erreur d'initialisation du sémaphore du compteur");
         exit(EXIT_FAILURE);
     }
 
     // Initialisation du sémaphore rédacteur à 1 (seul un rédacteur peut écrire)
-    if (semctl(semid_redacteur, 0, SETVAL, 1) == -1) {
+    if (semctl(read_lock, 0, SETVAL, 1) == -1) {
         perror("Erreur d'initialisation du sémaphore rédacteur");
         exit(EXIT_FAILURE);
     }
@@ -159,7 +160,12 @@ void affichage_grille(int participants) {
 
 void course(int i, bool isQualif, int participants, int tour_fait){
   // Demande d'accès pour un rédacteur
-  P(semid_redacteur);  // Rédacteur prend le semaphore
+  P(mutex);                   // Entrée en section critique
+  writer_count++;
+  if (writer_count == 1) {    // Premier rédacteur bloque la lecture
+    P(read_lock);
+  }
+  V(mutex);                   // Sortie de section critique
 
 
   // Ouverture d'un fichier pour stocker les temps
@@ -230,15 +236,20 @@ void course(int i, bool isQualif, int participants, int tour_fait){
 
   close(fichier); // Fermeture après utilisation
 
-  // Libération du semaphore pour le rédacteur
-  V(semid_redacteur);  // Rédacteur libère le semaphore
+  // Libération du semaphore pour les rédacteurs
+  P(mutex);                   // Entrée en section critique
+  writer_count--;
+  if (writer_count == 0) {    // Dernier rédacteur libère la lecture
+    V(read_lock);
+  }
+  V(mutex);                   // Sortie de section critique
   sleep(1);
 }
 
 bestTimes lecture_tri_affichage(voit *tableau_voit, int size_pilotes, bestTimes best_times, int participants, bool isQualif) {
 
   // Attente pour les lecteurs
-  P(semid_lecteur);  // Lecteur prend le semaphore
+  P(read_lock);  // Lecteur prend le semaphore
 
   int i;
   voit lecture_voit[participants]; // Crée un tableau pour stocker tout les temps
@@ -272,7 +283,7 @@ bestTimes lecture_tri_affichage(voit *tableau_voit, int size_pilotes, bestTimes 
   printf("-----------------------------------------------------------------------------\n"); // Affiche les temps
 
   // Libération du semaphore pour les lecteurs
-  V(semid_lecteur);  // Lecteur libère le semaphore
+  V(read_lock);  // Lecteur libère le semaphore
   return best_times;
 }
 
@@ -377,11 +388,11 @@ int grand_prix(int nbr_tours, bool qualif, int participants_course, bool show_gr
     exit(EXIT_FAILURE);
   }
 
-  if (semctl(semid_lecteur, 0, IPC_RMID) == -1) {
+  if (semctl(mutex, 0, IPC_RMID) == -1) {
     perror("Erreur lors de la suppression du sémaphore lecteur");
     exit(EXIT_FAILURE);
   }
-  if (semctl(semid_redacteur, 0, IPC_RMID) == -1) {
+  if (semctl(read_lock, 0, IPC_RMID) == -1) {
     perror("Erreur lors de la suppression du sémaphore rédacteur");
     exit(EXIT_FAILURE);
   }
