@@ -13,8 +13,7 @@
 #define NOMBRE_PILOTES_Q2 15
 #define NOMBRE_PILOTES_Q3 10
 
-// Remplacement des tableaux statiques par l'ouverture et la lecture depuis des fichiers
-// (les fichiers sont à ajouter à l'avenir, il faut les lire ici)
+// Initialisation des tableaux qui contiendront les numéros des pilotes après la lecture dans les fichiers les contenant 
 int* num_pilotes;  // Déclaration des tableaux comme pointeurs
 int* num_pilotes_q2;
 int* num_pilotes_q3;
@@ -168,24 +167,14 @@ void course(int i, bool isQualif, int participants, int tour_fait){
   V(mutex);                   // Sortie de section critique
 
 
-  // Ouverture d'un fichier pour stocker les temps
-  // int fichier = open("temps_stockage.txt", O_CREAT|O_APPEND|O_RDWR, 0666);
-  // if (fichier == -1) {
-  //   perror("Erreur lors de l'ouverture du fichier temps_stockage");
-  //   exit(EXIT_FAILURE);
-  // }
-  // else {
-  //   close(fichier);
-  // }
-
   int num;
 
   // Lecture dynamique des numéros de pilotes en fonction du nombre de participants
-  if (participants == 20) {
+  if (participants == NOMBRE_PILOTES_BASE) {
     num = num_pilotes[i];
-  } else if (participants == 15) {
+  } else if (participants == NOMBRE_PILOTES_Q2) {
     num = num_pilotes_q2[i];
-  } else if (participants == 10) {
+  } else if (participants == NOMBRE_PILOTES_Q3) {
     num = num_pilotes_q3[i];
   } else {
     num = 0;
@@ -234,7 +223,6 @@ void course(int i, bool isQualif, int participants, int tour_fait){
     tab_voit[i].out = v_out;
   }
 
-  // close(fichier); // Fermeture après utilisation
 
   // Libération du semaphore pour les rédacteurs
   P(mutex);                   // Entrée en section critique
@@ -253,6 +241,7 @@ bestTimes lecture_tri_affichage(voit *tableau_voit, int size_pilotes, bestTimes 
 
   int i;
   voit lecture_voit[participants]; // Crée un tableau pour stocker tout les temps
+
 
   memcpy(lecture_voit, tableau_voit, participants*sizeof(voit)); // Fait une copie de la mémoire partagée
 
@@ -362,12 +351,12 @@ int grand_prix(int nbr_tours, bool qualif, int participants_course, bool show_gr
 
   BubbleSort(lecture_voit, participants_course); // Trie le tableau des temps
 
-  if (participants_course == 20 && qualif) {
-    sauvegarder_pilotes(lecture_voit, 20, "q2.txt");  // Sauvegarde les 15 premiers après q2
-  } else if (participants_course == 15) {
-    sauvegarder_pilotes(lecture_voit, 15, "q3.txt");  // Sauvegarde les 10 premiers après q3
-  } else if (participants_course == 10) {
-    sauvegarder_pilotes(lecture_voit, 10, "ordre_course.txt");  // Sauvegarde l'ordre des 10 premiers
+  if (participants_course == NOMBRE_PILOTES_BASE && qualif) {
+    sauvegarder_pilotes(lecture_voit, NOMBRE_PILOTES_BASE, "q2.txt");  // Sauvegarde les 15 premiers après q2
+  } else if (participants_course == NOMBRE_PILOTES_Q2) {
+    sauvegarder_pilotes(lecture_voit, NOMBRE_PILOTES_Q2, "q3.txt");  // Sauvegarde les 10 premiers après q3
+  } else if (participants_course == NOMBRE_PILOTES_Q3) {
+    sauvegarder_pilotes(lecture_voit, NOMBRE_PILOTES_Q3, "ordre_course.txt");  // Sauvegarde l'ordre des 10 premiers
 
     lire_pilotes("q2.txt", num_pilotes_q2, NOMBRE_PILOTES_BASE);
     lire_pilotes("q3.txt", num_pilotes_q3, NOMBRE_PILOTES_Q2);
