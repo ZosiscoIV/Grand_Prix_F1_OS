@@ -169,14 +169,14 @@ void course(int i, bool isQualif, int participants, int tour_fait){
 
 
   // Ouverture d'un fichier pour stocker les temps
-  int fichier = open("temps_stockage.txt", O_CREAT|O_APPEND|O_RDWR, 0666);
-  if (fichier == -1) {
-    perror("Erreur lors de l'ouverture du fichier temps_stockage");
-    exit(EXIT_FAILURE);
-  }
-  else {
-    close(fichier);
-  }
+  // int fichier = open("temps_stockage.txt", O_CREAT|O_APPEND|O_RDWR, 0666);
+  // if (fichier == -1) {
+  //   perror("Erreur lors de l'ouverture du fichier temps_stockage");
+  //   exit(EXIT_FAILURE);
+  // }
+  // else {
+  //   close(fichier);
+  // }
 
   int num;
 
@@ -234,7 +234,7 @@ void course(int i, bool isQualif, int participants, int tour_fait){
     tab_voit[i].out = v_out;
   }
 
-  close(fichier); // Fermeture après utilisation
+  // close(fichier); // Fermeture après utilisation
 
   // Libération du semaphore pour les rédacteurs
   P(mutex);                   // Entrée en section critique
