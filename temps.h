@@ -10,10 +10,6 @@
 #define SECTEUR2 20
 #define SECTEUR3 30
 
-//float temps_s1[20] = {0};
-//float temps_s2[20] = {0};
-//float temps_s3[20] = {0};
-//float temps_totaux[20] = {0};
 
 typedef struct {
   int num_p;
@@ -70,39 +66,4 @@ void afficher_temps(voit voiture, voit voiture_avant, bool isQualif) {
   } else {
     printf("| Pilote n°%-2d | %3d min %6.3f sec | %+7.3f | %2d min %6.3f sec | %s      |\n", voiture.num_p, t_min, t_sec, diff, tot_min, tot_sec, pit_out);    
   }
-
-  
-
 }
-
-void stocker_temps(float temps, int num_pilote, int i, int secteur, int fichier) {
-    char buffer[100];
-    snprintf(buffer, sizeof(buffer), "Pilote %d Secteur %d : %.3f sec\n", num_pilote, secteur, temps);
-    write(fichier, buffer, strlen(buffer));
-}
-
-    /*switch (secteur) {
-        case 1:
-            temps_s1[i] = temps;
-            break;
-        case 2:
-            temps_s2[i] = temps;
-            break;
-        case 3:
-            temps_s3[i] = temps;
-            break;
-    }
-    temps_totaux[i] = temps_s1[i] + temps_s2[i] + temps_s3[i];*/
-
-
-
-
-  /*int fich = open("temps_stockage.txt", O_CREAT|O_APPEND|O_RDWR, 0666);
-  if (fich == -1) {
-    perror("Erreur lors de l'ouverture du fichier temps_stockage");
-    exit(1);
-  }
-  else {
-    close(fich);
-  }
-  printf("pas fait\n");*/
