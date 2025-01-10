@@ -428,9 +428,9 @@ int main(int argc, char **argv) {
       } else if (strcmp(argv[1], "sprint") == 0) {
           grand_prix(tours, false, NOMBRE_PILOTES_BASE, false);
       } else {
-          printf("Veuillez fournir un argument valide (ex: grand_prix, q1, ...).\n");
+          printf("Veuillez fournir un argument valide (ex: gp, q1, p2, sprint, ...).\n");
       }
   } else {
-      printf("Veuillez fournir un argument (ex: grand_prix, q1, ...).\n");
+      printf("Veuillez fournir un argument (ex: gp, q1, p2, sprint, ...).\n");
   }
 }
