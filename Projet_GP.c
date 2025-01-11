@@ -58,7 +58,7 @@ void P(int semid) {
     struct sembuf sb;
     sb.sem_num = 0;
     sb.sem_op = -1;  // Opération P : décrémentation
-    sb.sem_flg = 0;
+    sb.sem_flg = SEM_UNDO;
     if (semop(semid, &sb, 1) == -1) {
         perror("Erreur lors de l'opération P sur le sémaphore");
         exit(EXIT_FAILURE);
@@ -71,7 +71,7 @@ void V(int semid) {
     struct sembuf sb;
     sb.sem_num = 0;
     sb.sem_op = 1;  // Opération V : incrémentation
-    sb.sem_flg = 0;
+    sb.sem_flg = SEM_UNDO;
     if (semop(semid, &sb, 1) == -1) {
         perror("Erreur lors de l'opération V sur le sémaphore");
         exit(EXIT_FAILURE);
